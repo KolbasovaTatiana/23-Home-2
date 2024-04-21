@@ -307,6 +307,23 @@ public:
         }
         return false;
     }
+    Matrix& operator=(const Matrix& matrix) {
+		if (matr != nullptr) {
+			for (int i = 0; i < str; ++i) {
+				delete[] matr[i];
+			}
+			delete[] matr;
+		}
+		str = matrix.str;
+		col = matrix.col;
+		matr = new t*[str];
+		for (int i = 0; i < str; ++i) {
+			matr[i] = new t[col];
+			for (int j = 0; j < col; ++j) {
+				matr[i][j] = matrix.matr[i][j];
+			}
+		}
+		return *this;
     
     int GetCol () {                     //метод возвращающий количество колонок
         return col;
