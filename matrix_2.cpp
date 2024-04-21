@@ -66,47 +66,10 @@ public:
         }
         else 
         {
-            cerr << "File cannot be opened."
+            cerr << "File cannot be opened.";
         }   
     }
-    
-    /*Matrix (ifstream& in)               
-    {
-        int count_numbers = 0; //количество чисел в матрице
-        int curr;              //временная переменная
 
-        while (!in.eof()) {
-            in >> curr;        //пробегаемся по числам файла
-            ++count_numbers;
-        }
-
-        in.seekg(0, ios::beg); //возврат каретки на 0 символ файла
-        in.clear(); 
-
-        int count_space = 0;
-        char symbol;
-        while (!in.eof()) {
-            
-            in.get(symbol);   //считываем посимвольно файл
-            if (symbol == '\n') 
-                break;
-            if (symbol == ' ') 
-                ++count_space;    
-        }
-
-        in.seekg(0, ios::beg);
-        in.clear();
-
-        col = count_space+1;
-        str = count_numbers / col;
-
-        matr = new t *[str];
-        for (int i = 0; i < str; ++i) {
-            matr[i] = new t[col];
-            for (int j = 0; j < col; ++j)
-                in >> matr[i][j];
-        }
-    }*/
     Matrix(const Matrix &other)         //конструктор копирования
     {
         this->str = other.str;
@@ -180,16 +143,7 @@ public:
         }
         return ifs;
     }
-    /*void printMatrix()                  //вывод на консоль
-    {       
-        for (int i = 0; i < str; ++i) {
-            for (int j = 0; j < col; ++j) {
-                printf("%2.2lf ", matr[i][j]);
-            }
-            puts ("");
-        }
-        
-    }*/
+
     const Matrix operator *(const Matrix &other)
     {
         if (this->col != other.str)
@@ -250,6 +204,29 @@ public:
         }
         return z;
     }
+    Matrix operator !() {
+        Matrix A(str, col);
+        for (int i = 0; i < str; ++i) {
+            for (int j = 0; j < col; ++j) {
+                A.matr[i][j] = matr[i][j];
+            }
+        }
+        if (str != col) {
+            throw "The matrix is not square";
+        }
+        else {
+            double determinant = A.determinant();
+            if (determinant == 0)
+                throw "The matrix is ​​degenerate";
+            else {
+                Matrix B = A.MatrixDopolnenii();
+                B.transposition();
+                Matrix C = B * (1/determinant);
+                cout << "The inverse matrix was successfully calculated" << endl;
+                return C;
+            }
+        }
+    }
     bool operator ==(const Matrix &other)
     {
         if (this->col != other.col || this->str != other.str)
@@ -307,7 +284,7 @@ public:
         }
         return false;
     }
-    Matrix& operator=(const Matrix& matrix) {
+    Matrix& operator=(const Matrix& matrix) { //оператор присвоения
 		if (matr != nullptr) {
 			for (int i = 0; i < str; ++i) {
 				delete[] matr[i];
@@ -324,6 +301,7 @@ public:
 			}
 		}
 		return *this;
+    }
     
     int GetCol () {                     //метод возвращающий количество колонок
         return col;
@@ -377,90 +355,165 @@ public:
             matr[index2-1][i] = matr[index2-1][i] + (matr[index1-1][i]*skal);
         }    
     }
-    
-    /*friend ofstream& operator << (ofstream& potok, const Matrix& a)
-    {
-        for (int i = 0; i < a.str; ++i)
-        {
-            for (int j = 0; j < a.col; ++j)
-                potok << a.matr[i][j] << ' ';
-            if (i+1 != a.str)
-                potok << '\n';
+    void transposition() {
+        t** result = new t * [col];
+        for (int i = 0; i < col; ++i) {
+            result[i] = new t[str];
+            for (int j = 0; j < str; ++j) {
+                result[i][j] = matr[j][i];
+            }
         }
-        return potok;
+        for (int i = 0; i < str; ++i) 
+            delete[] matr[i];
+        delete[] matr;
+        int curr = str;
+        str = col;
+        col = curr;
+        matr = result;
     }
-    */
+    
+    double determinant() {
+        if (str != col) {
+            throw "Not possible to calculate the determinant";
+        }
+        else if (str == 1) {
+            return matr[0][0];
+        }
+        else if (str == 2) {
+            return matr[0][0] * matr[1][1] - matr[1][0] * matr[0][1];
+        }
+        else {
+            double determinant = 0;
+            Matrix minor(str - 1, col - 1);
+            for (int i = 0; i < col; ++i) {
+                for (int j = 1; j < str; ++j) {
+                    int k = 0;
+                    for (int l = 0; l < col; ++l) {
+                        if (l != i) {
+                            minor.matr[j - 1][k] = matr[j][l];
+                            k++;
+                        }
+                    }
+                }
+                if (i%2 == 0)
+                    determinant += matr[0][i] * minor.determinant();
+                else
+                    determinant += -1 * matr[0][i] * minor.determinant();
+            }
+            return determinant;
+        }
+    }
+    double dopolnenie(int n, int m) {
+        Matrix A(str - 1, col - 1);
+        int x, y = 0;
+        for (int i = 0; i < (str - 1); ++i) {
+            if (i == n - 1)
+                x = 1;
+            for (int j = 0; j < (str - 1); ++j) {
+                if (j == m - 1) {
+                    y = 1;
+                }
+                A.matr[i][j] = matr[i + x][j + y];
+            }
+            y = 0;
+        }
+        int sign;
+        if ((n + m) % 2 == 0) 
+            sign = 1;
+        else 
+            sign = -1;
+        return sign * A.determinant();
+    }
+    Matrix MatrixDopolnenii() {
+        Matrix A(str, col);
+        for (int i = 0; i < str; ++i) {
+            for (int j = 0; j < col; ++j) 
+                A.matr[i][j] = matr[i][j];
+        }
+        Matrix result(str, col);
+        if (str != col) {
+            throw "The matrix is not square";
+        }
+        else {
+            for (int i = 0; i < str; ++i) {
+                for (int j = 0; j < col; ++j) 
+                    result.matr[i][j] = A.dopolnenie(i + 1, j + 1);
+            }
+        }
+        return result;
+    }
+
 };
 
 int main() {
 
-    //Matrix b(3,3,1);
-    Matrix<int> f(3,3);
     Matrix<int> a;
     cin >> a;
     cout << a;
+    a.transposition();
+    cout << a;
+    try 
+    {
+        double det_a;
+        det_a = a.determinant();
+        cout << det_a << endl;
+    }
+    catch (const char* error_message)
+    {
+        cout << error_message << endl;
+    }
+    try 
+    {
+        Matrix<int> not_a = !a;
+        cout << not_a << endl;
+    }
+    catch (const char* error_message)
+    {
+        cout << error_message << endl;
+    }
 
-    /*ifstream file1("input_matr.txt");
-    Matrix z(file1);
-    z.printMatrix();
-    file1.close();
-    
-    ofstream file2("output_matr.txt");
-    file2 << a << endl;
-    file2.close();
-
-    //cout << (b==f) << endl;
-    //cout << (b!=f) << endl;
-
+    Matrix<int> b("input.txt");
+    cout << b;
     try
     {
-      //Matrix c = a*b;
-      c.printMatrix();     
+        Matrix<int> c = a+b;
+        cout << c;
     }
-    catch (const char* error_message)
+        catch (const char* error_message)
     {
         cout << error_message << endl;
     }
     try
     {
-      Matrix q = a+f;
-      q.printMatrix();  
+        Matrix<int> d = a-b;
+        cout << d;
     }
-    catch (const char* error_message)
+        catch (const char* error_message)
     {
         cout << error_message << endl;
     }
     try
     {
-      Matrix p = a-f;
-      p.printMatrix();  
+        Matrix<int> e = a*b;
+        cout << e;
     }
-    catch (const char* error_message)
+        catch (const char* error_message)
     {
         cout << error_message << endl;
     }
     try
     {
-        f.swapRows(2,3);     
+        Matrix<int> f = a+b;
+        cout << f;
     }
-    catch (const char* error_message)
+        catch (const char* error_message)
     {
         cout << error_message << endl;
     }
-    try
-    {
-        f.skalRow(2,3);     
-    }
-    catch (const char* error_message)
-    {
-        cout << error_message << endl;
-    }
-    try
-    {
-        f.skaladdRows(1,2,3);     
-    }
-    catch (const char* error_message)
-    {
-        cout << error_message << endl;
-    }*/
+    ofstream file("output.txt");
+	file << a;
+	cout << "Matrix is written to the file";
+	cout << endl;
 }
+    
+
